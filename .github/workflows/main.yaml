@@ -1,11 +1,11 @@
-name: build tracing
+name: build lambda monitoring
 on: push
 defaults:
   run:
     shell: bash
 jobs:
-  push_tracing:
-    name: deploy tracing
+  push_lambda_monitoring:
+    name: deploy lambda_monitoring
     runs-on: ubuntu-latest
 
     concurrency:
@@ -51,26 +51,3 @@ jobs:
         env:
           PYPI_USERNAME: ${{ secrets.TWINE_USERNAME }}
           PYPI_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
-
-      - name: Build layer artefact
-        run: |
-          mkdir -p python
-          cp requirements.txt python/
-          docker run -v ./python:/var/task/python m4rkw/python312-build:latest
-          zip -9r python.zip python/
-
-      - name: Push lambda layer
-        run: |
-          aws lambda publish-layer-version --layer-name lambda_monitoring --zip-file fileb://python.zip --compatible-runtimes python3.12
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: eu-west-1
-
-      - name: Clean up old versions
-        run: |
-          ./cleanup_layers.py
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: eu-west-1
