@@ -3,7 +3,7 @@
 import os
 import sys
 
-version = os.popen("curl -s https://pypi.org/pypi/m4rkw-tracing/json | jq -r '.info.version'").read().strip()
+version = os.popen("curl -s https://pypi.org/pypi/m4rkw-lambda-tracing/json | jq -r '.info.version'").read().strip()
 ex = version.split('.')
 n = int(ex[-1]) + 1
 
