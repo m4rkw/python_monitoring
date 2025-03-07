@@ -1,11 +1,11 @@
-name: build lambda monitoring
+name: build lambda_monitoring
 on: push
 defaults:
   run:
     shell: bash
 jobs:
   push_lambda_monitoring:
-    name: deploy lambda_monitoring
+    name: build lambda_monitoring
     runs-on: ubuntu-latest
 
     concurrency:
