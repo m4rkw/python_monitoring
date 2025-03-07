@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "m4rkw-lambda-tracing"
+version = "VERSION"
+description = "lambda monitoring"
+authors = [{ name = "Your Name", email = "your@email.com" }]
+readme = "README.md"
+license = { file = "LICENSE" }
+dependencies = [
+    "boto3",
+    "python-pushover2",
+]
+
+[tool.setuptools]
+packages = ["lambda_monitoring"]

@@ -1,0 +1,53 @@
+name: build tracing
+on: push
+defaults:
+  run:
+    shell: bash
+jobs:
+  push_tracing:
+    name: deploy tracing
+    runs-on: ubuntu-latest
+
+    concurrency:
+      group: ci-pipeline-${{ github.ref }}
+      cancel-in-progress: true
+
+    permissions:
+      id-token: write  # Allow OIDC token access
+      contents: read   # Allow reading repository contents
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetches all history for all tags and branches
+
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH  # Ensure uv is in PATH
+
+      - name: Set up Python environment
+        run: |
+          uv venv .venv --python=3.13  # Change version if needed
+          source .venv/bin/activate
+
+      - name: Install dependencies
+        run: |
+          source .venv/bin/activate
+          uv pip install build twine
+
+      - name: Update version
+        run: ./update_version.py
+
+      - name: Build package
+        run: |
+          source .venv/bin/activate
+          uv build
+
+      - name: Push package
+        run: |
+          source .venv/bin/activate
+          twine upload --repository pypi dist/*.whl
+        env:
+          PYPI_USERNAME: ${{ secrets.TWINE_USERNAME }}
+          PYPI_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
