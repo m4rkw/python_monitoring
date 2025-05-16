@@ -73,4 +73,7 @@ class LambdaMonitor:
             ExpiresIn=86400
         )
 
-        self.pushover.send_message(exception, title=self.function_name, url=url)
+        if len(url) <= 512:
+            self.pushover.send_message(exception, title=self.function_name, url=url)
+        else:
+            self.pushover.send_message(exception + "\n" + url, title=self.function_name)
