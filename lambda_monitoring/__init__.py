@@ -5,6 +5,7 @@ import time
 import uuid
 import datetime
 import traceback
+import requests
 from pushover import Client
 
 class LambdaMonitor:
@@ -12,7 +13,7 @@ class LambdaMonitor:
     def __init__(self, context, suffix=None):
         self.start = time.time()
 
-        self.s3 = boto3.client('s3')
+        self.dbd = boto3.client('dynamodb')
         self.function_name = context.function_name
 
         if suffix is not None:
@@ -61,19 +62,17 @@ class LambdaMonitor:
         content += f"Timestamp: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
         content += traceback.format_exc()
 
-        obj_name = f"{self.function_name}/{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}.txt"
+        self.dbd.put_item(
+            TableName="lambda_exception",
+            Item={
+                'key': {'S': self.function_name},
+                'timestamp': {'N': str(int(time.time()))},
+                'content': {'S': content}
+            }
+        )
 
-        self.s3.put_object(Bucket='mw-stacktraces', Key=obj_name, Body=content)
+        url = f"https://a.rkw.io/lambda_exception.py?key={self.function_name}&timestamp={int(time.time())}"
 
         exception = traceback.format_exception_only(*sys.exc_info()[:2])[-1].strip()
 
-        url = self.s3.generate_presigned_url(
-            ClientMethod='get_object',
-            Params={'Bucket': 'mw-stacktraces', 'Key': obj_name},
-            ExpiresIn=86400
-        )
-
-        if len(url) <= 512:
-            self.pushover.send_message(exception, title=self.function_name, url=url)
-        else:
-            self.pushover.send_message(exception + "\n" + url, title=self.function_name)
+        self.pushover.send_message(exception, title=self.function_name, url=url)
