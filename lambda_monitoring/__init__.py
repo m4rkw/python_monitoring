@@ -12,13 +12,13 @@ class LambdaMonitor:
     def __init__(self, context, suffix=None):
         self.start = time.time()
 
-        self.dbd = boto3.client('dynamodb')
+        self.s3 = boto3.client('s3')
         self.function_name = context.function_name
 
         if suffix is not None:
             self.function_name = f"{self.function_name}_{suffix}"
 
-        self.state = self.get_state()
+        #self.state = self.get_state()
         self.pushover = pushover = Client(os.environ['LAMBDA_TRACING_PUSHOVER_USER'], api_token=os.environ['LAMBDA_TRACING_PUSHOVER_APP'])
 
 
@@ -37,6 +37,8 @@ class LambdaMonitor:
 
 
     def success(self):
+        return
+
         runtime = time.time() - self.start
 
         if 'success' in self.state and self.state['success']['BOOL'] == False:
@@ -54,23 +56,21 @@ class LambdaMonitor:
     def failure(self):
         runtime = time.time() - self.start
 
-        if 'success' not in self.state or self.state['success']['BOOL'] == True:
-            exception = traceback.format_exc()
+        content = f"Function: {self.function_name}\n"
+        content += f"Runtime: {runtime:.2f} seconds\n"
+        content += f"Timestamp: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+        content += traceback.format_exc()
 
-            self.dbd.put_item(
-                TableName="lambda_tracing",
-                Item={
-                    'key': {'S': self.state['key']['S']},
-                    'timestamp': {'N': str(int(time.time()))},
-                    'exception': {'S': exception}
-                }
-            )
+        obj_name = f"{self.function_name}/{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}.txt"
 
-            self.pushover.send_message(exception, title=self.function_name)
+        self.s3.put_object(Bucket='mw-stacktraces', Key=obj_name, Body=content)
 
-            self.state['success'] = {'BOOL': False}
+        exception = traceback.format_exception_only(*sys.exc_info()[:2])[-1].strip()
 
-            resp = self.dbd.put_item(
-                TableName="lambda_state",
-                Item=self.state
-            )
+        url = self.s3.generate_presigned_url(
+            ClientMethod='get_object',
+            Params={'Bucket': 'mw-stacktraces', 'Key': obj_name},
+            ExpiresIn=86400
+        )
+
+        self.pushover.send_message(exception, title=self.function_name, url=url)
