@@ -17,6 +17,9 @@ DYNAMODB_METHODS = [
 class LambdaMonitor:
 
     def __init__(self, context, suffix=None):
+        sys.stdout.write(f"initialising LambdaMonitor\n")
+        sys.stdout.flush()
+
         self.start_time = time.time()
 
         self.dbd = boto3.client('dynamodb')
