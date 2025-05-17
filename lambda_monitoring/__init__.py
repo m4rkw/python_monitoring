@@ -140,6 +140,18 @@ class LambdaMonitor(metaclass=Singleton):
 
 
     def send_metrics(self, success, timestamp, runtime):
+        sys.stdout.write(f"emitting metrics:\n")
+        sys.stdout.write(f"success: {int(success)}\n")
+        sys.stdout.write(f"runtime: {runtime:.2f} seconds\n")
+
+        for method, count in self.calls.items():
+            sys.stdout.write(f"{method}: {count}\n")
+
+        for metric, count in self.metrics.items():
+            sys.stdout.write(f"{metric}: {count}\n")
+
+        sys.stdout.flush()
+
         resp = requests.post(
             os.environ['LAMBDA_TRACING_METRICS_ENDPOINT'],
             json={
