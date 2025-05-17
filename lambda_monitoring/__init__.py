@@ -76,13 +76,13 @@ class LambdaMonitor:
 
 
     def patch_boto(self):
+        original_client = boto3.client
+        self.original_client = original_client
         lm = self
-
-        self.original_session = boto3.session.Session
-        self.original_client = boto3.client
 
         def patch_method(client, method_name):
             original = getattr(client, method_name)
+
             def wrapper(*args, **kwargs):
                 lm.log_method_call(method_name)
                 resp = original(*args, **kwargs)
@@ -104,22 +104,15 @@ class LambdaMonitor:
 
             setattr(client, method_name, wrapper)
 
-        def patch_client(client, service_name):
+        def patched_client(service_name, *args, **kwargs):
+            client = original_client(service_name, *args, **kwargs)
             if service_name == 'dynamodb':
                 for method in DYNAMODB_METHODS:
                     if hasattr(client, method):
                         patch_method(client, method)
             return client
 
-        def patched_client(service_name, *args, **kwargs):
-            return patch_client(self.original_client(service_name, *args, **kwargs), service_name)
-
-        class PatchedSession(self.original_session):
-            def client(self, service_name, *args, **kwargs):
-                return patch_client(super().client(service_name, *args, **kwargs), service_name)
-
         boto3.client = patched_client
-        boto3.session.Session = PatchedSession
 
 
     def get_state(self):
@@ -186,7 +179,6 @@ class LambdaMonitor:
         )
 
         boto3.client = self.original_client
-        boto3.session.Session = self.original_session
 
 
     def failure(self):
