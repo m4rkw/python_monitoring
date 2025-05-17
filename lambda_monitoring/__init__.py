@@ -7,7 +7,6 @@ import datetime
 import traceback
 import requests
 from pushover import Client
-from lambda_monitoring.singleton import Singleton
 
 DYNAMODB_METHODS = [
     'get_item', 'put_item', 'update_item', 'delete_item',
@@ -15,7 +14,7 @@ DYNAMODB_METHODS = [
     'query', 'scan'
 ]
 
-class LambdaMonitor(metaclass=Singleton):
+class LambdaMonitor:
 
     def __init__(self, context, suffix=None):
         self.start_time = time.time()
@@ -30,6 +29,7 @@ class LambdaMonitor(metaclass=Singleton):
         self.pushover = pushover = Client(os.environ['LAMBDA_TRACING_PUSHOVER_USER'], api_token=os.environ['LAMBDA_TRACING_PUSHOVER_APP'])
 
         self.initialise_metrics()
+
         self.track_calls = False
 
 
@@ -51,8 +51,6 @@ class LambdaMonitor(metaclass=Singleton):
         if self.track_calls is False:
             self.patch_boto()
             self.track_calls = True
-
-        self.initialise_metrics()
 
 
     def log_method_call(self, method_name):
@@ -76,26 +74,27 @@ class LambdaMonitor(metaclass=Singleton):
 
     def patch_boto(self):
         original_client = boto3.client
+        lm = self
 
         def patch_method(client, method_name):
             original = getattr(client, method_name)
 
             def wrapper(*args, **kwargs):
-                LambdaMonitor().log_method_call(method_name)
+                lm.log_method_call(method_name)
                 resp = original(*args, **kwargs)
 
                 if 'Item' in resp:
-                    LambdaMonitor().log_read(1)
+                    lm.log_read(1)
                 elif 'Items' in resp:
-                    LambdaMonitor().log_read(len(resp['Items']))
+                    lm.log_read(len(resp['Items']))
 
                 if method_name in ['put_item', 'update_item']:
-                    LambdaMonitor().log_write(1)
+                    lm.log_write(1)
                 elif method_name == 'delete_item':
-                    LambdaMonitor().log_delete(1)
+                    lm.log_delete(1)
                 elif method_name == 'batch_write_item':
                     for key in kwargs['RequestItems']:
-                        LambdaMonitor().log_write(len(kwargs['RequestItems'][key]))
+                        lm.log_write(len(kwargs['RequestItems'][key]))
 
                 return resp
 
