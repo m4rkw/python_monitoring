@@ -50,8 +50,8 @@ class LambdaMonitor:
         }
 
 
-    def collect_metrics(self, reinitialise=False):
-        if self.track_calls is False or reinitialise:
+    def collect_metrics(self):
+        if self.track_calls is False:
             self.patch_boto()
             self.track_calls = True
 
@@ -78,8 +78,8 @@ class LambdaMonitor:
     def patch_boto(self):
         lm = self
 
-        original_session = boto3.session.Session
-        original_client = boto3.client
+        self.original_session = boto3.session.Session
+        self.original_client = boto3.client
 
         def patch_method(client, method_name):
             original = getattr(client, method_name)
@@ -106,15 +106,15 @@ class LambdaMonitor:
 
         def patch_client(client, service_name):
             if service_name == 'dynamodb':
-                for method in methods_to_patch:
+                for method in DYNAMODB_METHODS:
                     if hasattr(client, method):
                         patch_method(client, method)
             return client
 
         def patched_client(service_name, *args, **kwargs):
-            return patch_client(original_client(service_name, *args, **kwargs), service_name)
+            return patch_client(self.original_client(service_name, *args, **kwargs), service_name)
 
-        class PatchedSession(original_session):
+        class PatchedSession(self.original_session):
             def client(self, service_name, *args, **kwargs):
                 return patch_client(super().client(service_name, *args, **kwargs), service_name)
 
@@ -184,6 +184,9 @@ class LambdaMonitor:
             timeout=5,
             auth=(os.environ['LAMBDA_TRACING_METRICS_USERNAME'], os.environ['LAMBDA_TRACING_METRICS_PASSWORD'])
         )
+
+        boto3.client = self.original_client
+        boto3.session.Session = self.original_session
 
 
     def failure(self):
