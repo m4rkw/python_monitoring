@@ -44,7 +44,7 @@ class LambdaMonitor(metaclass=Singleton):
         self.track_calls = False
 
 
-    def capture_metrics(self):
+    def collect_metrics(self):
         self.patch_boto()
         self.track_calls = True
 
