@@ -5,7 +5,6 @@ import time
 import uuid
 import datetime
 import traceback
-import requests
 from pushover import Client
 
 class LambdaMonitor:
@@ -19,7 +18,7 @@ class LambdaMonitor:
         if suffix is not None:
             self.function_name = f"{self.function_name}_{suffix}"
 
-        #self.state = self.get_state()
+        self.state = self.get_state()
         self.pushover = pushover = Client(os.environ['LAMBDA_TRACING_PUSHOVER_USER'], api_token=os.environ['LAMBDA_TRACING_PUSHOVER_APP'])
 
 
@@ -38,8 +37,6 @@ class LambdaMonitor:
 
 
     def success(self):
-        return
-
         runtime = time.time() - self.start
 
         if 'success' in self.state and self.state['success']['BOOL'] == False:
@@ -57,22 +54,32 @@ class LambdaMonitor:
     def failure(self):
         runtime = time.time() - self.start
 
-        content = f"Function: {self.function_name}\n"
-        content += f"Runtime: {runtime:.2f} seconds\n"
-        content += f"Timestamp: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-        content += traceback.format_exc()
+        if 'success' not in self.state or self.state['success']['BOOL'] == True:
+            exception = traceback.format_exc()
 
-        self.dbd.put_item(
-            TableName="lambda_exception",
-            Item={
-                'key': {'S': self.function_name},
-                'timestamp': {'N': str(int(time.time()))},
-                'content': {'S': content}
-            }
-        )
+            content = f"Function: {self.function_name}\n"
+            content += f"Runtime: {runtime:.2f} seconds\n"
+            content += f"Timestamp: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+            content += traceback.format_exc()
 
-        url = f"https://a.rkw.io/lambda_exception.py?key={self.function_name}&timestamp={int(time.time())}"
+            self.dbd.put_item(
+                TableName="lambda_tracing",
+                Item={
+                    'key': {'S': self.state['key']['S']},
+                    'timestamp': {'N': str(int(time.time()))},
+                    'exception': {'S': content}
+                }
+            )
 
-        exception = traceback.format_exception_only(*sys.exc_info()[:2])[-1].strip()
+            url = f"https://a.rkw.io/lambda_exception.py?key={self.function_name}&timestamp={int(time.time())}"
 
-        self.pushover.send_message(exception, title=self.function_name, url=url)
+            exception = traceback.format_exception_only(*sys.exc_info()[:2])[-1].strip()
+
+            self.pushover.send_message(exception, title=self.function_name, url=url)
+
+            self.state['success'] = {'BOOL': False}
+
+            resp = self.dbd.put_item(
+                TableName="lambda_state",
+                Item=self.state
+            )
