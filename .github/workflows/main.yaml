@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
 
     concurrency:
-      group: ci-pipeline-${{ github.ref }}
+      group: ci-pipeline-lambda-monitoring-${{ github.ref }}
       cancel-in-progress: true
 
     permissions:
