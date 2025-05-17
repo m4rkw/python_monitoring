@@ -29,6 +29,11 @@ class LambdaMonitor(metaclass=Singleton):
         self.state = self.get_state()
         self.pushover = pushover = Client(os.environ['LAMBDA_TRACING_PUSHOVER_USER'], api_token=os.environ['LAMBDA_TRACING_PUSHOVER_APP'])
 
+        self.initialise_metrics()
+        self.track_calls = False
+
+
+    def initialise_metrics(self):
         self.calls = {
         }
 
@@ -41,12 +46,13 @@ class LambdaMonitor(metaclass=Singleton):
             'delete': 0
         }
 
-        self.track_calls = False
-
 
     def collect_metrics(self):
-        self.patch_boto()
-        self.track_calls = True
+        if self.track_calls is False:
+            self.patch_boto()
+            self.track_calls = True
+
+        self.initialise_metrics()
 
 
     def log_method_call(self, method_name):
