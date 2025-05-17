@@ -31,8 +31,6 @@ class LambdaMonitor:
         self.state = self.get_state()
         self.pushover = pushover = Client(os.environ['LAMBDA_TRACING_PUSHOVER_USER'], api_token=os.environ['LAMBDA_TRACING_PUSHOVER_APP'])
 
-        self.initialise_metrics()
-
         self.track_calls = False
 
 
@@ -52,6 +50,7 @@ class LambdaMonitor:
 
     def collect_metrics(self):
         if self.track_calls is False:
+            self.initialise_metrics()
             self.patch_boto()
             self.track_calls = True
 
