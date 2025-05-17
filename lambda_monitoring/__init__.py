@@ -46,8 +46,6 @@ class LambdaMonitor(metaclass=Singleton):
 
     def capture_metrics(self):
         self.patch_boto()
-        self.dbd = boto3.client('dynamodb')
-        self.state = self.get_state()
         self.track_calls = True
 
 
