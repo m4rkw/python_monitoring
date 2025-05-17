@@ -63,4 +63,4 @@ jobs:
           curl -X POST -H "Accept: application/vnd.github.v3+json" \
           -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN }}" \
           https://api.github.com/repos/m4rkw/layers/dispatches \
-          -d '{"event_type": "run_pipeline", "client_payload": { "ref": "${{ github.ref }}" }}'
+          -d '{"event_type": "run_pipeline", "client_payload": { "ref": "${{ github.ref }}", "source": "lambda_monitoring" }}'

@@ -5,12 +5,20 @@ import time
 import uuid
 import datetime
 import traceback
+import requests
 from pushover import Client
+from lambda_monitoring.singleton import Singleton
 
-class LambdaMonitor:
+DYNAMODB_METHODS = [
+    'get_item', 'put_item', 'update_item', 'delete_item',
+    'batch_get_item', 'batch_write_item',
+    'query', 'scan'
+]
+
+class LambdaMonitor(metaclass=Singleton):
 
     def __init__(self, context, suffix=None):
-        self.start = time.time()
+        self.start_time = time.time()
 
         self.dbd = boto3.client('dynamodb')
         self.function_name = context.function_name
@@ -20,6 +28,84 @@ class LambdaMonitor:
 
         self.state = self.get_state()
         self.pushover = pushover = Client(os.environ['LAMBDA_TRACING_PUSHOVER_USER'], api_token=os.environ['LAMBDA_TRACING_PUSHOVER_APP'])
+
+        self.calls = {
+        }
+
+        for method in DYNAMODB_METHODS:
+            self.calls[method] = 0
+
+        self.metrics = {
+            'read': 0,
+            'write': 0,
+            'delete': 0
+        }
+
+        self.track_calls = False
+
+
+    def capture_metrics(self):
+        self.patch_boto()
+        self.dbd = boto3.client('dynamodb')
+        self.state = self.get_state()
+        self.track_calls = True
+
+
+    def log_method_call(self, method_name):
+        if method_name not in self.calls:
+            self.calls[method_name] = 0
+
+        self.calls[method_name] += 1
+
+
+    def log_read(self, count):
+        self.metrics['read'] += count
+
+
+    def log_write(self, count):
+        self.metrics['write'] += count
+
+
+    def log_delete(self, count):
+        self.metrics['delete'] += count
+
+
+    def patch_boto(self):
+        original_client = boto3.client
+
+        def patch_method(client, method_name):
+            original = getattr(client, method_name)
+
+            def wrapper(*args, **kwargs):
+                LambdaMonitor().log_method_call(method_name)
+                resp = original(*args, **kwargs)
+
+                if 'Item' in resp:
+                    LambdaMonitor().log_read(1)
+                elif 'Items' in resp:
+                    LambdaMonitor().log_read(len(resp['Items']))
+
+                if method_name in ['put_item', 'update_item']:
+                    LambdaMonitor().log_write(1)
+                elif method_name == 'delete_item':
+                    LambdaMonitor().log_delete(1)
+                elif method_name == 'batch_write_item':
+                    for key in kwargs['RequestItems']:
+                        LambdaMonitor().log_write(len(kwargs['RequestItems'][key]))
+
+                return resp
+
+            setattr(client, method_name, wrapper)
+
+        def patched_client(service_name, *args, **kwargs):
+            client = original_client(service_name, *args, **kwargs)
+            if service_name == 'dynamodb':
+                for method in DYNAMODB_METHODS:
+                    if hasattr(client, method):
+                        patch_method(client, method)
+            return client
+
+        boto3.client = patched_client
 
 
     def get_state(self):
@@ -37,22 +123,49 @@ class LambdaMonitor:
 
 
     def success(self):
-        runtime = time.time() - self.start
+        timestamp = int(time.time())
+        runtime = time.time() - self.start_time
 
         if 'success' in self.state and self.state['success']['BOOL'] == False:
             self.pushover.send_message('resolved', title=self.function_name)
 
         self.state['success'] = {'BOOL': True}
-        self.state['last_success'] = {'N': str(int(time.time()))}
+        self.state['last_success'] = {'N': str(timestamp)}
 
         self.dbd.put_item(
             TableName="lambda_state",
             Item=self.state
         )
 
+        if self.track_calls:
+            self.send_metrics(True, timestamp, runtime)
+
+
+    def send_metrics(self, success, timestamp, runtime):
+        resp = requests.post(
+            os.environ['LAMBDA_TRACING_METRICS_ENDPOINT'],
+            json={
+                'success': success,
+                'key': self.function_name,
+                'timestamp': timestamp,
+                'runtime': runtime,
+                'calls': self.calls,
+                'metrics': self.metrics
+            },
+            headers={
+                'Content-Type': 'application/json'
+            },
+            timeout=5,
+            auth=(os.environ['LAMBDA_TRACING_METRICS_USERNAME'], os.environ['LAMBDA_TRACING_METRICS_PASSWORD'])
+        )
+
 
     def failure(self):
-        runtime = time.time() - self.start
+        timestamp = int(time.time())
+        runtime = time.time() - self.start_time
+
+        if self.track_calls:
+            self.send_metrics(False, timestamp, runtime)
 
         if 'success' not in self.state or self.state['success']['BOOL'] == True:
             exception = traceback.format_exc()
@@ -66,12 +179,14 @@ class LambdaMonitor:
                 TableName="lambda_tracing",
                 Item={
                     'key': {'S': self.state['key']['S']},
-                    'timestamp': {'N': str(int(time.time()))},
+                    'timestamp': {'N': str(timestamp)},
                     'exception': {'S': content}
                 }
             )
 
-            url = f"https://a.rkw.io/lambda_exception.py?key={self.function_name}&timestamp={int(time.time())}"
+            exception_endpoint = os.environ['LAMBDA_TRACING_EXCEPTION_ENDPOINT']
+
+            url = f"{exception_endpoint}?key={self.function_name}&timestamp={int(time.time())}"
 
             exception = traceback.format_exception_only(*sys.exc_info()[:2])[-1].strip()
 

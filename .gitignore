@@ -4,3 +4,4 @@ dist/*
 *.egg-info
 test.py
 __pycache__
+test.sh
