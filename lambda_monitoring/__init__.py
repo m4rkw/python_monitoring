@@ -50,8 +50,8 @@ class LambdaMonitor:
         }
 
 
-    def collect_metrics(self):
-        if self.track_calls is False:
+    def collect_metrics(self, reinitialise=False):
+        if self.track_calls is False or reinitialise:
             self.patch_boto()
             self.track_calls = True
 
