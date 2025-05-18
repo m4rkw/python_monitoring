@@ -17,10 +17,12 @@ DYNAMODB_METHODS = [
 class LambdaMonitor:
 
     def __init__(self, context, suffix=None):
-        sys.stdout.write(f"initialising LambdaMonitor\n")
-        sys.stdout.flush()
+        self.log("initialising LambdaMonitor")
 
         self.start_time = time.time()
+
+        timestamp = datetime.datetime.fromtimestamp(self.start_time).strftime('%Y-%m-%d %H:%M:%S')
+        self.log(f"start time: {timestamp}")
 
         self.dbd = boto3.client('dynamodb')
         self.function_name = context.function_name
@@ -34,7 +36,14 @@ class LambdaMonitor:
         self.track_calls = False
 
 
+    def log(self, message):
+        sys.stdout.write(message + "\n")
+        sys.stdout.flush()
+
+
     def initialise_metrics(self):
+        self.log(f"initialised metric counters")
+
         self.calls = {
         }
 
@@ -56,6 +65,8 @@ class LambdaMonitor:
 
 
     def log_method_call(self, method_name):
+        self.log(f"METHOD CALL: {method_name}")
+
         if method_name not in self.calls:
             self.calls[method_name] = 0
 
@@ -63,14 +74,17 @@ class LambdaMonitor:
 
 
     def log_read(self, count):
+        self.log(f"READ: {count}")
         self.metrics['read'] += count
 
 
     def log_write(self, count):
+        self.log(f"WRITE: {count}")
         self.metrics['write'] += count
 
 
     def log_delete(self, count):
+        self.log(f"DELETE: {count}")
         self.metrics['delete'] += count
 
 
