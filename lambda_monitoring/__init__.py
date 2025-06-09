@@ -64,8 +64,8 @@ class LambdaMonitor:
             self.track_calls = True
 
 
-    def log_method_call(self, method_name):
-        self.log(f"METHOD CALL: {method_name}")
+    def log_method_call(self, method_name, table):
+        self.log(f"METHOD CALL: {method_name} table={table}")
 
         if method_name not in self.calls:
             self.calls[method_name] = 0
@@ -97,7 +97,12 @@ class LambdaMonitor:
             original = getattr(client, method_name)
 
             def wrapper(*args, **kwargs):
-                lm.log_method_call(method_name)
+                if 'TableName' not in kwargs:
+                    table = list(kwargs['RequestItems'].keys())[0]
+                else:
+                    table = kwargs['TableName']
+
+                lm.log_method_call(method_name, table)
                 resp = original(*args, **kwargs)
 
                 if 'Item' in resp:
@@ -187,7 +192,7 @@ class LambdaMonitor:
             headers={
                 'Content-Type': 'application/json'
             },
-            timeout=5,
+            timeout=10,
             auth=(os.environ['LAMBDA_TRACING_METRICS_USERNAME'], os.environ['LAMBDA_TRACING_METRICS_PASSWORD'])
         )
 
