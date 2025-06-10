@@ -163,7 +163,11 @@ class LambdaMonitor:
         )
 
         if self.track_calls:
-            self.send_metrics(True, timestamp, runtime)
+            try:
+                self.send_metrics(True, timestamp, runtime)
+            except Exception as e:
+                sys.stderr.write(f"failed to send metrics: {str(e)}\n", exc_info=True)
+                sys.stderr.flush()
 
 
     def send_metrics(self, success, timestamp, runtime):
