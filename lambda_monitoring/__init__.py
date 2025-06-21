@@ -232,4 +232,3 @@ class LambdaMonitor:
             timeout=10,
             auth=(os.environ['LAMBDA_TRACING_METRICS_USERNAME'], os.environ['LAMBDA_TRACING_METRICS_PASSWORD'])
         )
-
