@@ -156,8 +156,10 @@ class LambdaMonitor:
         try:
             self.send_metrics(True, timestamp, runtime)
         except Exception as e:
-            sys.stderr.write(f"failed to send metrics: {str(e)}\n", exc_info=True)
+            sys.stderr.write(f"failed to send metrics: {str(e)}\n")
             sys.stderr.flush()
+
+            raise e
 
 
     def send_metrics(self, success, timestamp, runtime):
