@@ -34,6 +34,7 @@ class LambdaMonitor:
         self.pushover = pushover = Client(os.environ['LAMBDA_TRACING_PUSHOVER_USER'], api_token=os.environ['LAMBDA_TRACING_PUSHOVER_APP'])
 
         self.track_calls = False
+        self.initialise_metrics()
 
 
     def log(self, message):
@@ -45,8 +46,7 @@ class LambdaMonitor:
     def initialise_metrics(self):
         self.log(f"initialised metric counters")
 
-        self.calls = {
-        }
+        self.calls = {}
 
         for method in DYNAMODB_METHODS:
             self.calls[method] = 0
@@ -60,7 +60,6 @@ class LambdaMonitor:
 
     def collect_metrics(self):
         if self.track_calls is False:
-            self.initialise_metrics()
             self.patch_boto()
             self.track_calls = True
 
