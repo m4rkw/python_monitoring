@@ -135,7 +135,7 @@ class LambdaMonitor:
 
     def get_state(self):
         resp = requests.get(
-            os.environ['LAMBDA_TRACING_METRICS_ENDPOINT'].replace('metrics.py','state.py?function_name=' + self.function_name),
+            os.environ['LAMBDA_TRACING_METRICS_ENDPOINT'].replace('metrics.py','state.py?function=' + self.function_name),
             timeout=10,
             auth=(os.environ['LAMBDA_TRACING_METRICS_USERNAME'], os.environ['LAMBDA_TRACING_METRICS_PASSWORD'])
         )
