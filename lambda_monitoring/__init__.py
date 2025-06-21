@@ -37,8 +37,9 @@ class LambdaMonitor:
 
 
     def log(self, message):
-        sys.stdout.write(message + "\n")
-        sys.stdout.flush()
+        if sys.stdin.isatty():
+            sys.stdout.write(message + "\n")
+            sys.stdout.flush()
 
 
     def initialise_metrics(self):
@@ -171,17 +172,15 @@ class LambdaMonitor:
 
 
     def send_metrics(self, success, timestamp, runtime):
-        sys.stdout.write(f"emitting metrics:\n")
-        sys.stdout.write(f"success: {int(success)}\n")
-        sys.stdout.write(f"runtime: {runtime:.2f} seconds\n")
+        self.log(f"emitting metrics:\n")
+        self.log(f"success: {int(success)}\n")
+        self.log(f"runtime: {runtime:.2f} seconds\n")
 
         for method, count in self.calls.items():
-            sys.stdout.write(f"{method}: {count}\n")
+            self.log(f"{method}: {count}\n")
 
         for metric, count in self.metrics.items():
-            sys.stdout.write(f"{metric}: {count}\n")
-
-        sys.stdout.flush()
+            self.log(f"{metric}: {count}\n")
 
         resp = requests.post(
             os.environ['LAMBDA_TRACING_METRICS_ENDPOINT'],
