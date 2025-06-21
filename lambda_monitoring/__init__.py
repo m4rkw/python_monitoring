@@ -24,7 +24,6 @@ class LambdaMonitor:
         timestamp = datetime.datetime.fromtimestamp(self.start_time).strftime('%Y-%m-%d %H:%M:%S')
         self.log(f"start time: {timestamp}")
 
-        self.dbd = boto3.client('dynamodb')
         self.function_name = context.function_name
 
         if suffix is not None:
@@ -135,40 +134,29 @@ class LambdaMonitor:
 
 
     def get_state(self):
-        resp = self.dbd.get_item(
-            TableName="lambda_state",
-            Key={'key': {'S': self.function_name}}
+        resp = requests.get(
+            os.environ['LAMBDA_TRACING_METRICS_ENDPOINT'].replace('metrics.py','state.py?function_name=' + self.function_name),
+            timeout=10,
+            auth=(os.environ['LAMBDA_TRACING_METRICS_USERNAME'], os.environ['LAMBDA_TRACING_METRICS_PASSWORD'])
         )
 
-        if 'Item' in resp:
-            return resp['Item']
+        data = json.loads(resp.text)
 
-        return {
-            'key': {'S': self.function_name}
-        }
+        return data
 
 
     def success(self):
         timestamp = int(time.time())
         runtime = time.time() - self.start_time
 
-        if 'success' in self.state and self.state['success']['BOOL'] == False:
+        if not self.state['success']:
             self.pushover.send_message('resolved', title=self.function_name)
 
-        self.state['success'] = {'BOOL': True}
-        self.state['last_success'] = {'N': str(timestamp)}
-
-        self.dbd.put_item(
-            TableName="lambda_state",
-            Item=self.state
-        )
-
-        if self.track_calls:
-            try:
-                self.send_metrics(True, timestamp, runtime)
-            except Exception as e:
-                sys.stderr.write(f"failed to send metrics: {str(e)}\n", exc_info=True)
-                sys.stderr.flush()
+        try:
+            self.send_metrics(True, timestamp, runtime)
+        except Exception as e:
+            sys.stderr.write(f"failed to send metrics: {str(e)}\n", exc_info=True)
+            sys.stderr.flush()
 
 
     def send_metrics(self, success, timestamp, runtime):
@@ -209,22 +197,13 @@ class LambdaMonitor:
         if self.track_calls:
             self.send_metrics(False, timestamp, runtime)
 
-        if 'success' not in self.state or self.state['success']['BOOL'] == True:
+        if self.state['success']:
             exception = traceback.format_exc()
 
             content = f"Function: {self.function_name}\n"
             content += f"Runtime: {runtime:.2f} seconds\n"
             content += f"Timestamp: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
             content += traceback.format_exc()
-
-            self.dbd.put_item(
-                TableName="lambda_tracing",
-                Item={
-                    'key': {'S': self.state['key']['S']},
-                    'timestamp': {'N': str(timestamp)},
-                    'exception': {'S': content}
-                }
-            )
 
             exception_endpoint = os.environ['LAMBDA_TRACING_EXCEPTION_ENDPOINT']
 
@@ -234,9 +213,19 @@ class LambdaMonitor:
 
             self.pushover.send_message(exception, title=self.function_name, url=url)
 
-            self.state['success'] = {'BOOL': False}
-
-            resp = self.dbd.put_item(
-                TableName="lambda_state",
-                Item=self.state
-            )
+        resp = requests.post(
+            os.environ['LAMBDA_TRACING_METRICS_ENDPOINT'],
+            json={
+                'success': False,
+                'key': self.function_name,
+                'timestamp': timestamp,
+                'runtime': runtime,
+                'calls': self.calls,
+                'metrics': self.metrics
+            },
+            headers={
+                'Content-Type': 'application/json'
+            },
+            timeout=10,
+            auth=(os.environ['LAMBDA_TRACING_METRICS_USERNAME'], os.environ['LAMBDA_TRACING_METRICS_PASSWORD'])
+        )
