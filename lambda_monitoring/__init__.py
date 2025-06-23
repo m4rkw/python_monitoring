@@ -209,7 +209,7 @@ class LambdaMonitor:
         }
 
         if self.state['success']:
-            trace_identifier = f"{self.function_name}_{int(time.time())}"
+            trace_identifier = f"{self.function_name}_{int(time.time() * 1000000)}"
 
             exception = traceback.format_exc()
 
