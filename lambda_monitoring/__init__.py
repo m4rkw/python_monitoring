@@ -199,7 +199,18 @@ class LambdaMonitor:
         if self.track_calls:
             self.send_metrics(False, timestamp, runtime)
 
+        data={
+            'success': False,
+            'key': self.function_name,
+            'timestamp': timestamp,
+            'runtime': runtime,
+            'calls': self.calls,
+            'metrics': self.metrics
+        }
+
         if self.state['success']:
+            trace_identifier = f"{self.function_name}_{int(time.time())}"
+
             exception = traceback.format_exc()
 
             content = f"Function: {self.function_name}\n"
@@ -209,22 +220,18 @@ class LambdaMonitor:
 
             exception_endpoint = os.environ['LAMBDA_TRACING_EXCEPTION_ENDPOINT']
 
-            url = f"{exception_endpoint}?key={self.function_name}&timestamp={int(time.time())}"
+            url = f"{exception_endpoint}?key={trace_identifier}"
 
             exception = traceback.format_exception_only(*sys.exc_info()[:2])[-1].strip()
 
             self.pushover.send_message(exception, title=self.function_name, url=url)
 
+            data['trace_identifier'] = trace_identifier
+            data['trace'] = content
+
         resp = requests.post(
             os.environ['LAMBDA_TRACING_METRICS_ENDPOINT'],
-            json={
-                'success': False,
-                'key': self.function_name,
-                'timestamp': timestamp,
-                'runtime': runtime,
-                'calls': self.calls,
-                'metrics': self.metrics
-            },
+            json=data,
             headers={
                 'Content-Type': 'application/json'
             },
