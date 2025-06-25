@@ -228,7 +228,7 @@ class LambdaMonitor:
             data['trace'] = content
 
         resp = requests.post(
-            f"{os.environ['LAMBDA_TRACING_ENDPOINT}/metrics.py",
+            f"{os.environ['LAMBDA_TRACING_ENDPOINT']}/metrics.py",
             json=data,
             headers={
                 'Content-Type': 'application/json'
