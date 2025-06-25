@@ -214,26 +214,23 @@ class LambdaMonitor:
             'metrics': self.metrics
         }
 
-        if self.state['success']:
-            trace_identifier = f"{self.function_name}_{int(time.time() * 1000000)}"
+        trace_identifier = f"{self.function_name}_{int(time.time() * 1000000)}"
 
-            exception = traceback.format_exc()
+        exception = traceback.format_exc()
 
-            content = f"Function: {self.function_name}\n"
-            content += f"Runtime: {runtime:.2f} seconds\n"
-            content += f"Timestamp: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-            content += traceback.format_exc()
+        content = f"Function: {self.function_name}\n"
+        content += f"Runtime: {runtime:.2f} seconds\n"
+        content += f"Timestamp: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+        content += traceback.format_exc()
 
-            exception_endpoint = f"{self.endpoint}/exception.py"
+        exception_endpoint = f"{self.endpoint}/exception.py"
 
-            url = f"{exception_endpoint}?key={trace_identifier}"
+        url = f"{exception_endpoint}?key={trace_identifier}"
 
-            exception = traceback.format_exception_only(*sys.exc_info()[:2])[-1].strip()
+        exception = traceback.format_exception_only(*sys.exc_info()[:2])[-1].strip()
 
-            self.pushover.send_message(exception, title=self.function_name, url=url)
-
-            data['trace_identifier'] = trace_identifier
-            data['trace'] = content
+        data['trace_identifier'] = trace_identifier
+        data['trace'] = content
 
         resp = requests.post(
             f"{self.endpoint}/metrics.py",
@@ -244,3 +241,6 @@ class LambdaMonitor:
             timeout=10,
             proxies={'https': 'socks5h://127.0.0.1:1055'}
         )
+
+        if self.state['success']:
+            self.pushover.send_message(exception, title=self.function_name, url=url)
