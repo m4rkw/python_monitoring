@@ -27,8 +27,14 @@ class LambdaMonitor:
         timestamp = datetime.datetime.fromtimestamp(self.start_time).strftime('%Y-%m-%d %H:%M:%S')
         self.log(f"start time: {timestamp}")
 
-        socks.set_default_proxy(socks.SOCKS5, "127.0.0.1", 1055)
-        socket.socket = socks.socksocket
+        if 'TAILSCALE_USE_IPV6' in os.environ:
+            socks.set_default_proxy(socks.SOCKS5, "::1", 1055)
+            socket.socket = socks.socksocket
+            self.proxy_endpoint = 'socks5h://[::1]:1055'
+        else:
+            socks.set_default_proxy(socks.SOCKS5, "127.0.0.1", 1055)
+            socket.socket = socks.socksocket
+            self.proxy_endpoint = 'socks5h://127.0.0.1:1055'
 
         self.function_name = context.function_name
         self.endpoint = os.environ['LAMBDA_TRACING_ENDPOINT']
@@ -143,7 +149,7 @@ class LambdaMonitor:
         resp = requests.get(
             f"{self.endpoint}/state.py?function={self.function_name}",
             timeout=10,
-            proxies={'https': 'socks5h://127.0.0.1:1055'}
+            proxies={'https': self.proxy_endpoint}
         )
 
         data = json.loads(resp.text)
@@ -192,7 +198,7 @@ class LambdaMonitor:
                 'Content-Type': 'application/json'
             },
             timeout=10,
-            proxies={'https': 'socks5h://127.0.0.1:1055'}
+            proxies={'https': self.proxy_endpoint}
         )
 
         boto3.client = self.original_client
@@ -242,6 +248,6 @@ class LambdaMonitor:
                 'Content-Type': 'application/json'
             },
             timeout=10,
-            proxies={'https': 'socks5h://127.0.0.1:1055'}
+            proxies={'https': self.proxy_endpoint}
         )
 
