@@ -34,6 +34,7 @@ class LambdaMonitor:
         self.pushover = pushover = Client(os.environ['LAMBDA_TRACING_PUSHOVER_USER'], api_token=os.environ['LAMBDA_TRACING_PUSHOVER_APP'])
 
         self.track_calls = False
+        self.endpoint = os.environ['LAMBDA_TRACING_ENDPOINT']
         self.initialise_metrics()
 
 
@@ -135,7 +136,7 @@ class LambdaMonitor:
 
     def get_state(self):
         resp = requests.get(
-            os.environ['LAMBDA_TRACING_METRICS_ENDPOINT'].replace('metrics.py','state.py?function=' + self.function_name),
+            f"{self.endpoint}/state.py?function={self.function_name}",
             timeout=10
         )
 
@@ -172,7 +173,7 @@ class LambdaMonitor:
             self.log(f"{metric}: {count}\n")
 
         resp = requests.post(
-            f"{os.environ['LAMBDA_TRACING_ENDPOINT']}/metrics.py",
+            f"{self.endpoint}/metrics.py",
             json={
                 'success': success,
                 'key': self.function_name,
@@ -216,7 +217,7 @@ class LambdaMonitor:
             content += f"Timestamp: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
             content += traceback.format_exc()
 
-            exception_endpoint = f"{os.environ['LAMBDA_TRACING_ENDPOINT']}/exception.py"
+            exception_endpoint = f"{self.endpoint}/exception.py"
 
             url = f"{exception_endpoint}?key={trace_identifier}"
 
@@ -228,7 +229,7 @@ class LambdaMonitor:
             data['trace'] = content
 
         resp = requests.post(
-            f"{os.environ['LAMBDA_TRACING_ENDPOINT']}/metrics.py",
+            f"{self.endpoint}/metrics.py",
             json=data,
             headers={
                 'Content-Type': 'application/json'
