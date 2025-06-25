@@ -7,6 +7,8 @@ import json
 import datetime
 import traceback
 import requests
+import socks
+import socket
 from pushover import Client
 
 DYNAMODB_METHODS = [
@@ -24,6 +26,9 @@ class LambdaMonitor:
 
         timestamp = datetime.datetime.fromtimestamp(self.start_time).strftime('%Y-%m-%d %H:%M:%S')
         self.log(f"start time: {timestamp}")
+
+        socks.set_default_proxy(socks.SOCKS5, "127.0.0.1", 1055)
+        socket.socket = socks.socksocket
 
         self.function_name = context.function_name
         self.endpoint = os.environ['LAMBDA_TRACING_ENDPOINT']
@@ -137,7 +142,8 @@ class LambdaMonitor:
     def get_state(self):
         resp = requests.get(
             f"{self.endpoint}/state.py?function={self.function_name}",
-            timeout=10
+            timeout=10,
+            proxies={'https': 'socks5h://127.0.0.1:1055'}
         )
 
         data = json.loads(resp.text)
@@ -185,7 +191,8 @@ class LambdaMonitor:
             headers={
                 'Content-Type': 'application/json'
             },
-            timeout=10
+            timeout=10,
+            proxies={'https': 'socks5h://127.0.0.1:1055'}
         )
 
         boto3.client = self.original_client
@@ -234,5 +241,6 @@ class LambdaMonitor:
             headers={
                 'Content-Type': 'application/json'
             },
-            timeout=10
+            timeout=10,
+            proxies={'https': 'socks5h://127.0.0.1:1055'}
         )

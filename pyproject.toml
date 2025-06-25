@@ -12,6 +12,9 @@ license = { file = "LICENSE" }
 dependencies = [
     "boto3",
     "python-pushover2",
+    "requests",
+    "requests[socks]",
+    "PySocks",
 ]
 
 [tool.setuptools]
