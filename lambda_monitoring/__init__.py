@@ -26,6 +26,7 @@ class LambdaMonitor:
         self.log(f"start time: {timestamp}")
 
         self.function_name = context.function_name
+        self.endpoint = os.environ['LAMBDA_TRACING_ENDPOINT']
 
         if suffix is not None:
             self.function_name = f"{self.function_name}_{suffix}"
@@ -34,7 +35,6 @@ class LambdaMonitor:
         self.pushover = pushover = Client(os.environ['LAMBDA_TRACING_PUSHOVER_USER'], api_token=os.environ['LAMBDA_TRACING_PUSHOVER_APP'])
 
         self.track_calls = False
-        self.endpoint = os.environ['LAMBDA_TRACING_ENDPOINT']
         self.initialise_metrics()
 
 
