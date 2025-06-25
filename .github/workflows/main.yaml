@@ -49,8 +49,8 @@ jobs:
           source .venv/bin/activate
           twine upload --repository pypi dist/*.whl
 
-      - name: Wait for publish
-        run: ./wait_for_publish.sh
+#      - name: Wait for publish
+#        run: ./wait_for_publish.sh
 
 #  trigger_layers:
 #    name: trigger layers pipeline
