@@ -49,18 +49,18 @@ jobs:
           source .venv/bin/activate
           twine upload --repository pypi dist/*.whl
 
-  trigger_layers:
-    name: trigger layers pipeline
-    runs-on: ubuntu-latest
-
-    concurrency:
-      group: ci-pipeline-${{ github.ref }}
-      cancel-in-progress: true
-
-    steps:
-      - name: Send Repository Dispatch
-        run: |
-          curl -X POST -H "Accept: application/vnd.github.v3+json" \
-          -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN }}" \
-          https://api.github.com/repos/m4rkw/layers/dispatches \
-          -d '{"event_type": "run_pipeline", "client_payload": { "ref": "${{ github.ref }}", "source": "lambda_monitoring" }}'
+#  trigger_layers:
+#    name: trigger layers pipeline
+#    runs-on: ubuntu-latest
+#
+#    concurrency:
+#      group: ci-pipeline-${{ github.ref }}
+#      cancel-in-progress: true
+#
+#    steps:
+#      - name: Send Repository Dispatch
+#        run: |
+#          curl -X POST -H "Accept: application/vnd.github.v3+json" \
+#          -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN }}" \
+#          https://api.github.com/repos/m4rkw/layers/dispatches \
+#          -d '{"event_type": "run_pipeline", "client_payload": { "ref": "${{ github.ref }}", "source": "lambda_monitoring" }}'

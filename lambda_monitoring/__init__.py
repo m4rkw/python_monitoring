@@ -136,8 +136,7 @@ class LambdaMonitor:
     def get_state(self):
         resp = requests.get(
             os.environ['LAMBDA_TRACING_METRICS_ENDPOINT'].replace('metrics.py','state.py?function=' + self.function_name),
-            timeout=10,
-            auth=(os.environ['LAMBDA_TRACING_METRICS_USERNAME'], os.environ['LAMBDA_TRACING_METRICS_PASSWORD'])
+            timeout=10
         )
 
         data = json.loads(resp.text)
@@ -173,7 +172,7 @@ class LambdaMonitor:
             self.log(f"{metric}: {count}\n")
 
         resp = requests.post(
-            os.environ['LAMBDA_TRACING_METRICS_ENDPOINT'],
+            f"{os.environ['LAMBDA_TRACING_ENDPOINT']}/metrics.py",
             json={
                 'success': success,
                 'key': self.function_name,
@@ -185,8 +184,7 @@ class LambdaMonitor:
             headers={
                 'Content-Type': 'application/json'
             },
-            timeout=10,
-            auth=(os.environ['LAMBDA_TRACING_METRICS_USERNAME'], os.environ['LAMBDA_TRACING_METRICS_PASSWORD'])
+            timeout=10
         )
 
         boto3.client = self.original_client
@@ -218,7 +216,7 @@ class LambdaMonitor:
             content += f"Timestamp: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
             content += traceback.format_exc()
 
-            exception_endpoint = os.environ['LAMBDA_TRACING_EXCEPTION_ENDPOINT']
+            exception_endpoint = f"{os.environ['LAMBDA_TRACING_ENDPOINT']}/exception.py"
 
             url = f"{exception_endpoint}?key={trace_identifier}"
 
@@ -230,11 +228,10 @@ class LambdaMonitor:
             data['trace'] = content
 
         resp = requests.post(
-            os.environ['LAMBDA_TRACING_METRICS_ENDPOINT'],
+            f"{os.environ['LAMBDA_TRACING_ENDPOINT}/metrics.py",
             json=data,
             headers={
                 'Content-Type': 'application/json'
             },
-            timeout=10,
-            auth=(os.environ['LAMBDA_TRACING_METRICS_USERNAME'], os.environ['LAMBDA_TRACING_METRICS_PASSWORD'])
+            timeout=10
         )
