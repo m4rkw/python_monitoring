@@ -9,6 +9,7 @@ import traceback
 import requests
 import socks
 import socket
+import importlib
 from pushover import Client
 
 DYNAMODB_METHODS = [
@@ -27,6 +28,25 @@ class LambdaMonitor:
         timestamp = datetime.datetime.fromtimestamp(self.start_time).strftime('%Y-%m-%d %H:%M:%S')
         self.log(f"start time: {timestamp}")
 
+        self.enable_proxy()
+
+        self.function_name = context.function_name
+        self.endpoint = os.environ['LAMBDA_TRACING_ENDPOINT']
+
+        if suffix is not None:
+            self.function_name = f"{self.function_name}_{suffix}"
+
+        self.state = self.get_state()
+
+        self.disable_proxy()
+
+        self.pushover = Client(os.environ['LAMBDA_TRACING_PUSHOVER_USER'], api_token=os.environ['LAMBDA_TRACING_PUSHOVER_APP'])
+
+        self.track_calls = False
+        self.initialise_metrics()
+
+
+    def enable_proxy(self):
         if 'TAILSCALE_USE_IPV6' in os.environ:
             socks.set_default_proxy(socks.SOCKS5, "::1", 1055)
             socket.socket = socks.socksocket
@@ -36,17 +56,9 @@ class LambdaMonitor:
             socket.socket = socks.socksocket
             self.proxy_endpoint = 'socks5h://127.0.0.1:1055'
 
-        self.function_name = context.function_name
-        self.endpoint = os.environ['LAMBDA_TRACING_ENDPOINT']
 
-        if suffix is not None:
-            self.function_name = f"{self.function_name}_{suffix}"
-
-        self.state = self.get_state()
-        self.pushover = pushover = Client(os.environ['LAMBDA_TRACING_PUSHOVER_USER'], api_token=os.environ['LAMBDA_TRACING_PUSHOVER_APP'])
-
-        self.track_calls = False
-        self.initialise_metrics()
+    def disable_proxy(self):
+        socket.socket = importlib.reload(socket).socket
 
 
     def log(self, message):
@@ -184,6 +196,8 @@ class LambdaMonitor:
         for metric, count in self.metrics.items():
             self.log(f"{metric}: {count}\n")
 
+        self.enable_proxy()
+
         resp = requests.post(
             f"{self.endpoint}/metrics.py",
             json={
@@ -201,6 +215,8 @@ class LambdaMonitor:
             proxies={'https': self.proxy_endpoint}
         )
 
+        self.disable_proxy()
+
         boto3.client = self.original_client
 
 
@@ -208,8 +224,8 @@ class LambdaMonitor:
         timestamp = int(time.time())
         runtime = time.time() - self.start_time
 
-        if self.track_calls:
-            self.send_metrics(False, timestamp, runtime)
+#        if self.track_calls:
+#            self.send_metrics(False, timestamp, runtime)
 
         data={
             'success': False,
@@ -241,6 +257,8 @@ class LambdaMonitor:
             data['trace_identifier'] = trace_identifier
             data['trace'] = content
 
+        self.enable_proxy()
+
         resp = requests.post(
             f"{self.endpoint}/metrics.py",
             json=data,
@@ -251,3 +269,4 @@ class LambdaMonitor:
             proxies={'https': self.proxy_endpoint}
         )
 
+        self.disable_proxy()
