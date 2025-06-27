@@ -15,4 +15,4 @@ with open('pyproject.toml','w') as f:
     f.write(content)
 
 with open('version','w') as f:
-    f.write(content)
+    f.write(version)
