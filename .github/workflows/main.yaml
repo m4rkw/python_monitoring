@@ -70,10 +70,6 @@ jobs:
           - tracker
           - updates
 
-    concurrency:
-      group: ci-pipeline-${{ github.ref }}
-      cancel-in-progress: true
-
     steps:
       - name: Send Repository Dispatch
         run: |
