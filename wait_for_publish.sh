@@ -1,12 +1,13 @@
 #!/bin/bash
-v=`egrep version pyproject.toml |cut -d '"' -f2`
+version=`cat version`
 while :
 do
-    l=`pip index versions m4rkw-lambda-tracing 2>/dev/null |grep LATEST |xargs |cut -d ' ' -f2`
+    latest=`pip index versions m4rkw-lambda-tracing 2>/dev/null |grep LATEST |xargs |cut -d ' ' -f2`
 
-    if [ "$l" = "$v" ] ; then
+    if [ "$latest" = "$version" ] ; then
         break
     fi
 
+    echo "latest published version is: $latest, waiting for $version"
     sleep 1
 done
