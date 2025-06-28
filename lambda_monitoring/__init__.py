@@ -164,7 +164,10 @@ class LambdaMonitor:
             proxies={'https': self.proxy_endpoint}
         )
 
-        data = json.loads(resp.text)
+        try:
+            data = json.loads(resp.text)
+        except:
+            return {}
 
         return data
 
@@ -173,7 +176,7 @@ class LambdaMonitor:
         timestamp = int(time.time())
         runtime = time.time() - self.start_time
 
-        if not self.state['success']:
+        if 'success' in self.state and not self.state['success']:
             self.pushover.send_message('resolved', title=self.function_name)
 
         try:
@@ -236,7 +239,7 @@ class LambdaMonitor:
             'runtime': runtime,
             'calls': self.calls,
             'metrics': self.metrics,
-            'exception_type': str(exc_type),
+            'exception_type': str(exc_type.__name__),
             'exception_message': str(exc_value),
         }
 
