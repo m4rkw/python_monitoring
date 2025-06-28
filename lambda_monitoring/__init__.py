@@ -227,16 +227,20 @@ class LambdaMonitor:
 #        if self.track_calls:
 #            self.send_metrics(False, timestamp, runtime)
 
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+
         data={
             'success': False,
             'key': self.function_name,
             'timestamp': timestamp,
             'runtime': runtime,
             'calls': self.calls,
-            'metrics': self.metrics
+            'metrics': self.metrics,
+            'exception_type': str(exc_type),
+            'exception_message': str(exc_value),
         }
 
-        if self.state['success']:
+        if 'exception_type' not in self.state or 'exception_message' not in self.state or data['exception_type'] != self.state['exception_type'] or data['exception_message'] != self.state['exception_message']:
             trace_identifier = f"{self.function_name}_{int(time.time() * 1000000)}"
 
             exception = traceback.format_exc()
