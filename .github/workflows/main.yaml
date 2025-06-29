@@ -4,7 +4,7 @@ defaults:
   run:
     shell: bash
 jobs:
-  push_lambda_monitoring:
+  build:
     name: build lambda_monitoring
     runs-on: ubuntu-latest
 
@@ -54,6 +54,7 @@ jobs:
 
   trigger_layers:
     name: trigger layers pipeline
+    needs: build
     runs-on: ubuntu-latest
     strategy:
         matrix:

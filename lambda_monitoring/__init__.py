@@ -144,7 +144,7 @@ class LambdaMonitor:
 
                 if 'Responses' in resp:
                     for tablename in resp['Responses']:
-                        read += len(resp['Responses'][tablename])
+                        lm.log_read(len(resp['Responses'][tablename]))
 
                 return resp
 
