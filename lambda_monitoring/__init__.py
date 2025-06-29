@@ -158,15 +158,15 @@ class LambdaMonitor:
 
 
     def get_state(self):
-        resp = requests.get(
-            f"{self.endpoint}/state.py?function={self.function_name}",
-            timeout=10,
-            proxies={'https': self.proxy_endpoint}
-        )
-
         try:
+            resp = requests.get(
+                f"{self.endpoint}/state.py?function={self.function_name}",
+                timeout=10,
+                proxies={'https': self.proxy_endpoint}
+            )
+
             data = json.loads(resp.text)
-        except:
+        except Exception as e:
             return {}
 
         return data
@@ -201,22 +201,25 @@ class LambdaMonitor:
 
         self.enable_proxy()
 
-        resp = requests.post(
-            f"{self.endpoint}/metrics.py",
-            json={
-                'success': success,
-                'key': self.function_name,
-                'timestamp': timestamp,
-                'runtime': runtime,
-                'calls': self.calls,
-                'metrics': self.metrics
-            },
-            headers={
-                'Content-Type': 'application/json'
-            },
-            timeout=10,
-            proxies={'https': self.proxy_endpoint}
-        )
+        try:
+            resp = requests.post(
+                f"{self.endpoint}/metrics.py",
+                json={
+                    'success': success,
+                    'key': self.function_name,
+                    'timestamp': timestamp,
+                    'runtime': runtime,
+                    'calls': self.calls,
+                    'metrics': self.metrics
+                },
+                headers={
+                    'Content-Type': 'application/json'
+                },
+                timeout=10,
+                proxies={'https': self.proxy_endpoint}
+            )
+        except Exception as e:
+            pass
 
         self.disable_proxy()
 
@@ -266,14 +269,17 @@ class LambdaMonitor:
 
         self.enable_proxy()
 
-        resp = requests.post(
-            f"{self.endpoint}/metrics.py",
-            json=data,
-            headers={
-                'Content-Type': 'application/json'
-            },
-            timeout=10,
-            proxies={'https': self.proxy_endpoint}
-        )
+        try:
+            resp = requests.post(
+                f"{self.endpoint}/metrics.py",
+                json=data,
+                headers={
+                    'Content-Type': 'application/json'
+                },
+                timeout=10,
+                proxies={'https': self.proxy_endpoint}
+            )
+        except Exception as e:
+            pass
 
         self.disable_proxy()
