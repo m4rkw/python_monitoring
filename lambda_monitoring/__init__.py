@@ -142,6 +142,10 @@ class LambdaMonitor:
                     for key in kwargs['RequestItems']:
                         lm.log_write(len(kwargs['RequestItems'][key]))
 
+                if 'Responses' in resp:
+                    for tablename in resp['Responses']:
+                        read += len(resp['Responses'][tablename])
+
                 return resp
 
             setattr(client, method_name, wrapper)
