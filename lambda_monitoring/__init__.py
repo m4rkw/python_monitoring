@@ -28,17 +28,11 @@ class LambdaMonitor:
         timestamp = datetime.datetime.fromtimestamp(self.start_time).strftime('%Y-%m-%d %H:%M:%S')
         self.log(f"start time: {timestamp}")
 
-        self.enable_proxy()
-
         self.function_name = context.function_name
         self.endpoint = os.environ['LAMBDA_TRACING_ENDPOINT']
 
         if suffix is not None:
             self.function_name = f"{self.function_name}_{suffix}"
-
-        self.state = self.get_state()
-
-        self.disable_proxy()
 
         self.pushover = Client(os.environ['LAMBDA_TRACING_PUSHOVER_USER'], api_token=os.environ['LAMBDA_TRACING_PUSHOVER_APP'])
 
@@ -180,6 +174,10 @@ class LambdaMonitor:
         timestamp = int(time.time())
         runtime = time.time() - self.start_time
 
+        self.enable_proxy()
+
+        self.state = self.get_state()
+
         if 'success' in self.state and not self.state['success']:
             self.pushover.send_message('resolved', title=self.function_name)
 
@@ -202,8 +200,6 @@ class LambdaMonitor:
 
         for metric, count in self.metrics.items():
             self.log(f"{metric}: {count}\n")
-
-        self.enable_proxy()
 
         try:
             resp = requests.post(
@@ -234,8 +230,9 @@ class LambdaMonitor:
         timestamp = int(time.time())
         runtime = time.time() - self.start_time
 
-#        if self.track_calls:
-#            self.send_metrics(False, timestamp, runtime)
+        self.enable_proxy()
+
+        self.state = self.get_state()
 
         exc_type, exc_value, exc_traceback = sys.exc_info()
 
@@ -271,8 +268,6 @@ class LambdaMonitor:
             data['trace_identifier'] = trace_identifier
             data['trace'] = content
 
-        self.enable_proxy()
-
         try:
             resp = requests.post(
                 f"{self.endpoint}/metrics.py",
@@ -285,5 +280,3 @@ class LambdaMonitor:
             )
         except Exception as e:
             pass
-
-        self.disable_proxy()
