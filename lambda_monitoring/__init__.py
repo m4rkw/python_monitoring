@@ -7,6 +7,7 @@ import json
 import datetime
 import traceback
 import requests
+import requests.auth
 import socks
 import socket
 import importlib
@@ -30,6 +31,10 @@ class LambdaMonitor:
 
         self.function_name = context.function_name
         self.endpoint = os.environ['LAMBDA_TRACING_ENDPOINT']
+        self.auth = requests.auth.HTTPBasicAuth(
+            os.environ['LAMBDA_TRACING_USERNAME'],
+            os.environ['LAMBDA_TRACING_PASSWORD']
+        )
 
         if suffix is not None:
             self.function_name = f"{self.function_name}_{suffix}"
@@ -38,21 +43,6 @@ class LambdaMonitor:
 
         self.track_calls = False
         self.initialise_metrics()
-
-
-    def enable_proxy(self):
-        if 'TAILSCALE_USE_IPV6' in os.environ:
-            socks.set_default_proxy(socks.SOCKS5, "::1", 1055)
-            socket.socket = socks.socksocket
-            self.proxy_endpoint = 'socks5h://[::1]:1055'
-        else:
-            socks.set_default_proxy(socks.SOCKS5, "127.0.0.1", 1055)
-            socket.socket = socks.socksocket
-            self.proxy_endpoint = 'socks5h://127.0.0.1:1055'
-
-
-    def disable_proxy(self):
-        socket.socket = importlib.reload(socket).socket
 
 
     def log(self, message):
@@ -160,7 +150,7 @@ class LambdaMonitor:
             resp = requests.get(
                 f"{self.endpoint}/state.py?function={self.function_name}",
                 timeout=10,
-                proxies={'https': self.proxy_endpoint}
+                auth=self.auth
             )
 
             data = json.loads(resp.text)
@@ -173,8 +163,6 @@ class LambdaMonitor:
     def success(self):
         timestamp = int(time.time())
         runtime = time.time() - self.start_time
-
-        self.enable_proxy()
 
         self.state = self.get_state()
 
@@ -216,12 +204,10 @@ class LambdaMonitor:
                     'Content-Type': 'application/json'
                 },
                 timeout=10,
-                proxies={'https': self.proxy_endpoint}
+                auth=self.auth
             )
         except Exception as e:
             pass
-
-        self.disable_proxy()
 
         boto3.client = self.original_client
 
@@ -229,8 +215,6 @@ class LambdaMonitor:
     def failure(self):
         timestamp = int(time.time())
         runtime = time.time() - self.start_time
-
-        self.enable_proxy()
 
         self.state = self.get_state()
 
@@ -276,7 +260,7 @@ class LambdaMonitor:
                     'Content-Type': 'application/json'
                 },
                 timeout=10,
-                proxies={'https': self.proxy_endpoint}
+                auth=self.auth
             )
         except Exception as e:
             pass
