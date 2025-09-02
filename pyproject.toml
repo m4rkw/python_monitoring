@@ -3,9 +3,9 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "m4rkw-lambda-tracing"
+name = "m4rkw-tracing"
 version = "VERSION"
-description = "lambda monitoring"
+description = "pytho tracing"
 authors = [{ name = "Your Name", email = "your@email.com" }]
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -18,4 +18,4 @@ dependencies = [
 ]
 
 [tool.setuptools]
-packages = ["lambda_monitoring"]
+packages = ["tracing"]

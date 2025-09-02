@@ -4,7 +4,7 @@ import os
 import sys
 import json
 
-LAYER = "lambda_monitoring"
+LAYER = "python_monitoring"
 
 def cleanup_old_versions(layer_name, versions_to_delete):
     for version in versions_to_delete:
