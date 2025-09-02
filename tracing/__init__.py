@@ -13,7 +13,7 @@ from pushover import Client
 
 class Tracing:
 
-    def __init__(self, context, suffix=None):
+    def __init__(self, context):
         self.log("initialising tracing")
 
         self.start_time = time.time()
@@ -21,7 +21,11 @@ class Tracing:
         timestamp = datetime.datetime.fromtimestamp(self.start_time).strftime('%Y-%m-%d %H:%M:%S')
         self.log(f"start time: {timestamp}")
 
-        self.function_name = context.function_name
+        if type(context) == str:
+            self.function_name = context
+        else:
+            self.function_name = context.function_name
+
         self.endpoint = os.environ['TRACING_ENDPOINT']
 
         if 'TRACING_USERNAME' in os.environ and 'TRACING_PASSWORD' in os.environ:
@@ -31,9 +35,6 @@ class Tracing:
             )
         else:
             self.auth = None
-
-        if suffix is not None:
-            self.function_name = f"{self.function_name}_{suffix}"
 
         self.pushover = Client(os.environ['TRACING_PUSHOVER_USER'], api_token=os.environ['TRACING_PUSHOVER_APP'])
 
