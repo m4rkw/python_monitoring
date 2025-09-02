@@ -49,7 +49,7 @@ class Tracing:
 
 
     def log(self, message):
-        if sys.stdin.isatty() or 'DEBUG' in os.environ:
+        if 'DEBUG' in os.environ:
             sys.stdout.write(message + "\n")
             sys.stdout.flush()
 
