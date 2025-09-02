@@ -28,6 +28,8 @@ class Tracing:
 
         self.endpoint = os.environ['TRACING_ENDPOINT']
 
+        self.log(f"tracing endpoint: {self.endpoint}")
+
         if 'TRACING_USERNAME' in os.environ and 'TRACING_PASSWORD' in os.environ:
             self.auth = requests.auth.HTTPBasicAuth(
                 os.environ['TRACING_USERNAME'],
@@ -38,28 +40,35 @@ class Tracing:
 
         self.pushover = Client(os.environ['TRACING_PUSHOVER_USER'], api_token=os.environ['TRACING_PUSHOVER_APP'])
 
+        if 'SOCKS5_PROXY' in os.environ:
+            self.proxies = {'https': f"socks5h://{os.environ['SOCKS5_PROXY']}"}
+            self.log(f"using proxy: {os.environ['SOCKS5_PROXY']}")
+        else:
+            self.proxies = {}
+            self.log("not using proxy")
+
 
     def log(self, message):
-        if sys.stdin.isatty():
+        if sys.stdin.isatty() or 'DEBUG' in os.environ:
             sys.stdout.write(message + "\n")
             sys.stdout.flush()
 
 
     def get_state(self):
-        if 'SOCKS5_PROXY' in os.environ:
-            proxies = {'https': f"socks5h://{os.environ['SOCKS5_PROXY']}"}
-        else:
-            proxies = {}
+        self.log(f"getting state for function: {self.function_name}")
 
         try:
             resp = requests.get(
                 f"{self.endpoint}/tracing/{self.function_name}",
                 timeout=10,
                 auth=self.auth,
-                proxies=proxies
+                proxies=self.proxies
             )
 
             data = json.loads(resp.text)
+
+            self.log(f"state returned: {data}")
+
         except Exception as e:
             return {}
 
@@ -102,7 +111,8 @@ class Tracing:
                     'Content-Type': 'application/json'
                 },
                 timeout=10,
-                auth=self.auth
+                auth=self.auth,
+                proxies=proxies
             )
         except Exception as e:
             pass
@@ -152,7 +162,8 @@ class Tracing:
                     'Content-Type': 'application/json'
                 },
                 timeout=10,
-                auth=self.auth
+                auth=self.auth,
+                proxies=proxies
             )
         except Exception as e:
             pass
