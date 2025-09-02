@@ -112,10 +112,13 @@ class Tracing:
                 },
                 timeout=10,
                 auth=self.auth,
-                proxies=proxies
+                proxies=self.proxies
             )
+
+            self.log(f"state response: {resp.status_code} - {resp.text}")
+
         except Exception as e:
-            pass
+            self.log(f"error sending date: {e}")
 
 
     def failure(self):
@@ -163,7 +166,7 @@ class Tracing:
                 },
                 timeout=10,
                 auth=self.auth,
-                proxies=proxies
+                proxies=self.proxies
             )
         except Exception as e:
             pass
