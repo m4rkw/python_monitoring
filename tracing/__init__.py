@@ -46,11 +46,17 @@ class Tracing:
 
 
     def get_state(self):
+        if 'SOCKS5_PROXY' in os.environ:
+            proxies = {'https': f"socks5h://{os.environ['SOCKS5_PROXY']}"}
+        else:
+            proxies = {}
+
         try:
             resp = requests.get(
                 f"{self.endpoint}/tracing/{self.function_name}",
                 timeout=10,
-                auth=self.auth
+                auth=self.auth,
+                proxies=proxies
             )
 
             data = json.loads(resp.text)
