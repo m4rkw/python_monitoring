@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "m4rkw-tracing"
-version = "0.0.78"
+version = "VERSION"
 description = "pytho tracing"
 authors = [{ name = "Your Name", email = "your@email.com" }]
 readme = "README.md"
