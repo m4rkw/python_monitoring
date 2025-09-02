@@ -65,20 +65,21 @@ class Tracing:
     def get_state(self):
         self.log(f"getting state for function: {self.function_name}")
 
-        try:
-            resp = requests.get(
-                f"{self.endpoint}/tracing/{self.function_name}",
-                timeout=10,
-                auth=self.auth,
-                proxies=self.proxies
-            )
+        for i in range(0, 5):
+            try:
+                resp = requests.get(
+                    f"{self.endpoint}/tracing/{self.function_name}",
+                    timeout=10,
+                    auth=self.auth,
+                    proxies=self.proxies
+                )
 
-            data = json.loads(resp.text)
+                data = json.loads(resp.text)
 
-            self.log(f"state returned: {data}")
+                self.log(f"state returned: {data}")
 
-        except Exception as e:
-            return {}
+            except Exception as e:
+                return {}
 
         return data
 
@@ -106,27 +107,32 @@ class Tracing:
         self.log(f"success: {int(success)}\n")
         self.log(f"runtime: {runtime:.2f} seconds\n")
 
-        try:
-            resp = requests.post(
-                f"{self.endpoint}/tracing/{self.function_name}",
-                json={
-                    'success': success,
-                    'key': self.function_name,
-                    'timestamp': timestamp,
-                    'runtime': runtime,
-                },
-                headers={
-                    'Content-Type': 'application/json'
-                },
-                timeout=10,
-                auth=self.auth,
-                proxies=self.proxies
-            )
+        for i in range(0, 5):
+            try:
+                resp = requests.post(
+                    f"{self.endpoint}/tracing/{self.function_name}",
+                    json={
+                        'success': success,
+                        'key': self.function_name,
+                        'timestamp': timestamp,
+                        'runtime': runtime,
+                    },
+                    headers={
+                        'Content-Type': 'application/json'
+                    },
+                    timeout=10,
+                    auth=self.auth,
+                    proxies=self.proxies
+                )
 
-            self.log(f"state response: {resp.status_code} - {resp.text}")
+                self.log(f"state response: {resp.status_code} - {resp.text}")
 
-        except Exception as e:
-            self.log(f"error sending date: {e}")
+                if resp.status_code == 200:
+                    break
+
+            except Exception as e:
+                self.log(f"error sending data: {e}")
+                time.sleep(1)
 
 
     def failure(self):
@@ -165,16 +171,21 @@ class Tracing:
             data['trace_identifier'] = trace_identifier
             data['trace'] = content
 
-        try:
-            resp = requests.post(
-                f"{self.endpoint}/tracing/{self.function_name}",
-                json=data,
-                headers={
-                    'Content-Type': 'application/json'
-                },
-                timeout=10,
-                auth=self.auth,
-                proxies=self.proxies
-            )
-        except Exception as e:
-            pass
+        for i in range(0, 5):
+            try:
+                resp = requests.post(
+                    f"{self.endpoint}/tracing/{self.function_name}",
+                    json=data,
+                    headers={
+                        'Content-Type': 'application/json'
+                    },
+                    timeout=10,
+                    auth=self.auth,
+                    proxies=self.proxies
+                )
+
+                if resp.status_code == 200:
+                    break
+
+            except Exception as e:
+                pass
