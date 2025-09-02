@@ -15,6 +15,7 @@ dependencies = [
     "requests",
     "requests[socks]",
     "PySocks",
+    "PyYAML",
 ]
 
 [tool.setuptools]

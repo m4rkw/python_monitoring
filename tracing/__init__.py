@@ -3,6 +3,7 @@ import sys
 import time
 import uuid
 import json
+import yaml
 import datetime
 import traceback
 import requests
@@ -25,6 +26,13 @@ class Tracing:
             self.function_name = context
         else:
             self.function_name = context.function_name
+
+        if os.path.exists('/etc/tracing.yaml'):
+            config = yaml.safe_load(open('/etc/tracing.yaml').read())
+
+            os.environ['TRACING_ENDPOINT'] = config['endpoint']
+            os.environ['TRACING_PUSHOVER_USER'] = config['pushover_user']
+            os.environ['TRACING_PUSHOVER_APP'] = config['pushover_app']
 
         self.endpoint = os.environ['TRACING_ENDPOINT']
 
