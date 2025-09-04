@@ -21,6 +21,7 @@ if os.path.exists(__tracing_last_update_tracker__):
     __tracing_last_update__ = os.stat(__tracing_last_update_tracker__).st_mtime
 
 TRACING_UPDATE_INTERVAL = 300
+VERSION = '0.1.0'
 
 class Tracing:
 
@@ -161,6 +162,7 @@ class Tracing:
                         'key': self.function_name,
                         'timestamp': timestamp,
                         'runtime': runtime,
+                        'version': VERSION,
                     },
                     headers={
                         'Content-Type': 'application/json'
@@ -193,6 +195,7 @@ class Tracing:
             'key': self.function_name,
             'timestamp': timestamp,
             'runtime': runtime,
+            'version': VERSION,
             'exception_type': str(exc_type.__name__),
             'exception_message': str(exc_value),
         }
