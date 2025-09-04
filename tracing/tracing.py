@@ -15,7 +15,7 @@ from pathlib import Path
 
 __tracing_state__ = open(__file__).read()
 __tracing_last_update__ = None
-__tracing_last_update_tracker = f'/tmp/.tracing_last_update_{os.getuid()}'
+__tracing_last_update_tracker__ = f'/tmp/.tracing_last_update_{os.getuid()}'
 
 if os.path.exists(__tracing_last_update_tracker):
     __tracing_last_update__ = os.stat(__tracing_last_update_tracker).st_mtime
@@ -28,7 +28,7 @@ class Tracing:
     def __new__(cls, *args, **kwargs):
         global __tracing_state__
         global __tracing_last_update__
-        global __tracing_last_update_tracker
+        global __tracing_last_update_tracker__
 
         if __tracing_last_update__ is None or time.time() - __tracing_last_update__ >= TRACING_UPDATE_INTERVAL:
             for i in range(0, 5):
@@ -54,7 +54,7 @@ class Tracing:
 
             __tracing_last_update__ = time.time()
 
-            Path(__tracing_last_update_tracker).touch()
+            Path(__tracing_last_update_tracker__).touch()
 
         return super().__new__(cls)
 
