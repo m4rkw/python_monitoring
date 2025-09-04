@@ -17,8 +17,8 @@ __tracing_state__ = open(__file__).read()
 __tracing_last_update__ = None
 __tracing_last_update_tracker__ = f'/tmp/.tracing_last_update_{os.getuid()}'
 
-if os.path.exists(__tracing_last_update_tracker):
-    __tracing_last_update__ = os.stat(__tracing_last_update_tracker).st_mtime
+if os.path.exists(__tracing_last_update_tracker__):
+    __tracing_last_update__ = os.stat(__tracing_last_update_tracker__).st_mtime
 
 TRACING_UPDATE_INTERVAL = 300
 
