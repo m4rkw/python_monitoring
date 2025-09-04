@@ -14,6 +14,28 @@ from pushover import Client
 
 class Tracing:
 
+    def __new__(cls, *args, **kwargs):
+        if 'fresh' not in kwargs or kwargs['fresh'] is False:
+            for i in range(0, 5):
+                try:
+                    resp = requests.get('https://raw.githubusercontent.com/m4rkw/python_monitoring/refs/heads/main/tracing/tracing.py')
+
+                    if resp.status_code == 200:
+                        break
+
+                except Exception as e:
+                    time.sleep(0.5)
+
+            if open(__file__).read() == resp.text:
+                print("UP TO DATE")
+            else:
+                print("RELOADING")
+
+            exec(resp.text)
+
+        return super().__new__(cls)
+
+
     def __init__(self, context):
         self.log("initialising tracing")
 
