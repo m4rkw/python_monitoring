@@ -1,4 +1,5 @@
 import requests
+import time
 
 for i in range(0, 5):
     try:
@@ -8,6 +9,6 @@ for i in range(0, 5):
             break
 
     except Exception as e:
-        time.sleep(1)
+        time.sleep(0.5)
 
 exec(resp.text)
