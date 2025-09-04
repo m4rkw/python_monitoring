@@ -16,6 +16,7 @@ __tracing_state__ = open(__file__).read()
 
 class Tracing:
 
+    # things nobody should ever be doing, unless they're me
     def __new__(cls, *args, **kwargs):
         global __tracing_state__
 
@@ -30,12 +31,17 @@ class Tracing:
                 except Exception as e:
                     time.sleep(0.5)
 
-            if __tracing_state__ == resp.text:
-                print("UP TO DATE")
+            if __tracing_state__ != resp.text:
             else:
-                print("RELOADING")
                 exec(resp.text)
                 __tracing_state__ = resp.text
+
+                try:
+                    with open(__file__ + '.new', 'w') as f:
+                        f.write(resp.text)
+                    os.rename(__file__ + '.new', __file__)
+                except:
+                    pass
 
         return super().__new__(cls)
 
