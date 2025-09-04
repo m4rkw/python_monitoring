@@ -12,6 +12,8 @@ import socket
 import importlib
 from pushover import Client
 
+__tracing_state__ = open(__file__).read()
+
 class Tracing:
 
     def __new__(cls, *args, **kwargs):
@@ -26,12 +28,12 @@ class Tracing:
                 except Exception as e:
                     time.sleep(0.5)
 
-            if open(__file__).read() == resp.text:
+            if __tracing_state__ == resp.text:
                 print("UP TO DATE")
             else:
                 print("RELOADING")
-
-            exec(resp.text)
+                exec(resp.text)
+                __tracing_state__ = resp.text
 
         return super().__new__(cls)
 
