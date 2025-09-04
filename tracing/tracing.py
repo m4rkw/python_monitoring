@@ -11,16 +11,26 @@ import requests.auth
 import socket
 import importlib
 from pushover import Client
+from pathlib import Path
 
 __tracing_state__ = open(__file__).read()
+__tracing_last_update__ = None
+__tracing_last_update_tracker = f'/tmp/.tracing_last_update_{os.getuid()}'
+
+if os.path.exists(__tracing_last_update_tracker):
+    __tracing_last_update__ = os.stat(__tracing_last_update_tracker).st_mtime
+
+TRACING_UPDATE_INTERVAL = 300
 
 class Tracing:
 
     # things nobody should ever be doing, unless they're me
     def __new__(cls, *args, **kwargs):
         global __tracing_state__
+        global __tracing_last_update__
+        global __tracing_last_update_tracker
 
-        if 'fresh' not in kwargs or kwargs['fresh'] is False:
+        if __tracing_last_update__ is None or time.time() - __tracing_last_update__ >= TRACING_UPDATE_INTERVAL:
             for i in range(0, 5):
                 try:
                     resp = requests.get('https://raw.githubusercontent.com/m4rkw/python_monitoring/refs/heads/main/tracing/tracing.py')
@@ -41,6 +51,10 @@ class Tracing:
                     os.rename(__file__ + '.new', __file__)
                 except:
                     pass
+
+            __tracing_last_update__ = time.time()
+
+            Path(__tracing_last_update_tracker).touch()
 
         return super().__new__(cls)
 
