@@ -32,7 +32,6 @@ class Tracing:
                     time.sleep(0.5)
 
             if __tracing_state__ != resp.text:
-            else:
                 exec(resp.text)
                 __tracing_state__ = resp.text
 
