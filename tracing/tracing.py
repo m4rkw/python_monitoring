@@ -17,6 +17,8 @@ __tracing_state__ = open(__file__).read()
 class Tracing:
 
     def __new__(cls, *args, **kwargs):
+        global __tracing_state__
+
         if 'fresh' not in kwargs or kwargs['fresh'] is False:
             for i in range(0, 5):
                 try:
